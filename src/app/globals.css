@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Custom Properties (updated by useTheme) ── */
+:root {
+  --color-primary: #06b6d4;
+  --color-accent: #22d3ee;
+  --color-surface: rgba(5, 10, 25, 0.90);
+  --color-surface-2: rgba(10, 20, 45, 0.82);
+  --color-text: #e2f4fd;
+  --color-text-muted: #7fb3c8;
+  --color-border: rgba(6, 182, 212, 0.20);
+  --color-glow: rgba(34, 211, 238, 0.45);
+  --color-bg: #030712;
+  --bg-gradient: linear-gradient(135deg, #020810 0%, #050f1e 30%, #071628 60%, #0a1f35 100%);
+}
+
+/* ── Global Resets ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--color-bg);
+  background-image: var(--bg-gradient);
+  color: var(--color-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background 2s ease, background-image 2s ease, color 1.5s ease;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* ── Focus visible ── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Globe container ── */
+.globe-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.globe-container canvas {
+  border-radius: 0;
+}
+
+/* ── Glassmorphism utility ── */
+.glass {
+  background: var(--color-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+/* ── Glow animation ── */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 10px var(--color-glow); }
+  50% { box-shadow: 0 0 30px var(--color-glow), 0 0 60px var(--color-glow); }
+}
+
+.glow-pulse {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+/* ── Plane icon rotation ── */
+.plane-rotate {
+  transform-origin: center;
+}
+
+/* ── Stats bar shimmer ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-primary) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ── Radar ping ── */
+@keyframes radarPing {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ── Theme transitions ── */
+.theme-transition {
+  transition:
+    background 2s ease,
+    color 1.5s ease,
+    border-color 1.5s ease,
+    box-shadow 1.5s ease;
+}
+
+/* ── Utility animations ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ── Globe WebGL canvas fix ── */
+canvas {
+  display: block;
+}
+
+/* ── Mobile touch improvements ── */
+@media (max-width: 768px) {
+  .flight-panel-mobile {
+    left: 0;
+    right: 0;
+    width: 100%;
+    bottom: 0;
+    top: auto;
+    border-radius: 1.5rem 1.5rem 0 0;
+    max-height: 70vh;
+  }
+}
+
+/* ── Tooltip ── */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+}
+
+/* ── Hide globe.gl default background ── */
+.scene-container {
+  background: transparent !important;
+}
+
+/* ── Stat card hover ── */
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px var(--color-glow);
+}
+
+/* ── Number counter ── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ── Gradient text ── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
