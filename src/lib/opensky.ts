@@ -48,15 +48,45 @@ export function filterValidFlights(states: FlightState[]): FlightState[] {
   );
 }
 
-// Build auth header if credentials provided
-function getAuthHeaders(): HeadersInit {
-  const user = process.env.OPENSKY_USERNAME;
-  const pass = process.env.OPENSKY_PASSWORD;
-  if (user && pass) {
-    const creds = Buffer.from(`${user}:${pass}`).toString('base64');
-    return { Authorization: `Basic ${creds}` };
+let tokenCache: { token: string; expiresAt: number } | null = null;
+
+// OpenSky retired username/password authentication in March 2026. Use OAuth2
+// client credentials when configured, otherwise use the supported anonymous
+// API instead of sending stale Basic credentials that cause a 401 response.
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const clientId = process.env.OPENSKY_CLIENT_ID;
+  const clientSecret = process.env.OPENSKY_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) return {};
+
+  if (tokenCache && tokenCache.expiresAt > Date.now() + 30_000) {
+    return { Authorization: `Bearer ${tokenCache.token}` };
   }
-  return {};
+
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+  const response = await fetch(
+    'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      cache: 'no-store',
+    }
+  );
+
+  if (!response.ok) throw new Error(`OpenSky authentication error: ${response.status}`);
+
+  const data = (await response.json()) as { access_token: string; expires_in?: number };
+  tokenCache = {
+    token: data.access_token,
+    expiresAt: Date.now() + (data.expires_in ?? 300) * 1000,
+  };
+
+  return { Authorization: `Bearer ${data.access_token}` };
 }
 
 // Fetch all live aircraft states
@@ -75,7 +105,7 @@ export async function fetchAllStates(bounds?: {
   }
 
   const res = await fetch(url, {
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     next: { revalidate: 15 },
   });
 
@@ -93,7 +123,7 @@ export async function fetchFlightsByAircraft(
   end: number
 ): Promise<unknown[]> {
   const url = `${OPENSKY_BASE}/flights/aircraft?icao24=${icao24}&begin=${begin}&end=${end}`;
-  const res = await fetch(url, { headers: getAuthHeaders() });
+  const res = await fetch(url, { headers: await getAuthHeaders() });
   if (!res.ok) return [];
   return res.json();
 }
