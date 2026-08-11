@@ -27,3 +27,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+//Exports the nextConfig
