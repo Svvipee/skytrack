@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { fetchAllStates, parseStateVector, filterValidFlights, enrichFlight } from '@/lib/opensky';
+import {
+  fetchAllStates,
+  fetchFallbackStates,
+  parseStateVector,
+  filterValidFlights,
+  enrichFlight,
+} from '@/lib/opensky';
 import { buildFlightDetails } from '@/lib/aviation';
 import { EnrichedFlight } from '@/types';
 
@@ -23,7 +29,16 @@ export async function GET() {
       return NextResponse.json({ flights: cache.data, time: cache.time, cached: true });
     }
 
-    const response = await fetchAllStates();
+    let source = 'OpenSky';
+    let response;
+
+    try {
+      response = await fetchAllStates();
+    } catch (openSkyError) {
+      console.warn('[/api/flights] OpenSky unavailable; using ADSB.lol fallback', openSkyError);
+      response = await fetchFallbackStates();
+      source = 'ADSB.lol';
+    }
 
     if (!response.states) {
       if (cache) {
@@ -49,6 +64,7 @@ export async function GET() {
       flights: enrichedFlights,
       time: response.time,
       count: enrichedFlights.length,
+      source,
       cached: false,
     });
   } catch (err) {

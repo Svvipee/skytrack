@@ -1,6 +1,8 @@
 import { OpenSkyResponse, FlightState, EnrichedFlight } from '@/types';
 
 const OPENSKY_BASE = 'https://opensky-network.org/api';
+const ADSB_LOL_FALLBACK =
+  'https://api.adsb.lol/v2/type/A320,B738,B737,B77W,B789,A321,A20N,B38M,A359,A333,B763,E190,CRJ9';
 
 // Parse raw OpenSky state vector array into typed object
 export function parseStateVector(sv: (string | number | boolean | null)[]): FlightState {
@@ -107,6 +109,7 @@ export async function fetchAllStates(bounds?: {
   const res = await fetch(url, {
     headers: await getAuthHeaders(),
     next: { revalidate: 15 },
+    signal: AbortSignal.timeout(6_000),
   });
 
   if (!res.ok) {
@@ -114,6 +117,66 @@ export async function fetchAllStates(bounds?: {
   }
 
   return res.json();
+}
+
+type AdsbLolAircraft = {
+  hex?: string;
+  flight?: string;
+  lat?: number;
+  lon?: number;
+  alt_baro?: number | 'ground';
+  alt_geom?: number;
+  gs?: number;
+  track?: number;
+  baro_rate?: number;
+  squawk?: string;
+  seen?: number;
+};
+
+/**
+ * Backup live feed used when OpenSky is unreachable from a hosting region.
+ * ADSB.lol data is ODbL-licensed: https://www.adsb.lol/docs/open-data/api/
+ */
+export async function fetchFallbackStates(): Promise<OpenSkyResponse> {
+  const response = await fetch(ADSB_LOL_FALLBACK, {
+    next: { revalidate: 30 },
+    signal: AbortSignal.timeout(12_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`ADSB.lol API error: ${response.status} ${response.statusText}`);
+  }
+
+  const payload = (await response.json()) as { ac?: AdsbLolAircraft[]; now?: number };
+  const now = Math.floor((payload.now ?? Date.now()) / 1000);
+  const states = (payload.ac ?? []).map((aircraft): (string | number | boolean | null)[] => {
+    const onGround = aircraft.alt_baro === 'ground';
+    const baroAltitude = typeof aircraft.alt_baro === 'number'
+      ? aircraft.alt_baro / 3.28084
+      : null;
+
+    return [
+      aircraft.hex ?? '',
+      aircraft.flight?.trim() ?? null,
+      'Unknown',
+      now - Math.round(aircraft.seen ?? 0),
+      now - Math.round(aircraft.seen ?? 0),
+      aircraft.lon ?? null,
+      aircraft.lat ?? null,
+      baroAltitude,
+      onGround,
+      aircraft.gs != null ? aircraft.gs / 1.94384 : null,
+      aircraft.track ?? null,
+      aircraft.baro_rate != null ? aircraft.baro_rate / 196.85 : null,
+      null,
+      aircraft.alt_geom != null ? aircraft.alt_geom / 3.28084 : null,
+      aircraft.squawk ?? null,
+      false,
+      0,
+    ];
+  });
+
+  return { time: now, states };
 }
 
 // Fetch flights for a specific aircraft by ICAO24
