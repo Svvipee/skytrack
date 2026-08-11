@@ -24,7 +24,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions);
+  // Authentication is optional. Keep the public tracker available when a
+  // deployment has not configured an auth secret or OAuth credentials yet.
+  const session = process.env.NEXTAUTH_SECRET
+    ? await getServerSession(authOptions)
+    : null;
 
   return (
     <html lang="en" suppressHydrationWarning>

@@ -16,6 +16,19 @@ import { useTheme } from '@/hooks/useTheme';
 import { useFlightStore, useCollectionsStore, useUIStore } from '@/store';
 import { EnrichedFlight } from '@/types';
 
+const STARS = Array.from({ length: 40 }, (_, index) => {
+  const seeded = (offset: number) => ((index * 37 + offset * 61) % 101) / 100;
+
+  return {
+    size: seeded(1) * 2 + 1,
+    top: seeded(2) * 100,
+    left: seeded(3) * 100,
+    opacity: seeded(4),
+    duration: 2 + seeded(5) * 3,
+    delay: seeded(6) * 3,
+  };
+});
+
 export default function Home() {
   const theme = useTheme();
   const { flights } = useFlights();
@@ -73,18 +86,18 @@ export default function Home() {
       {/* Stars overlay (night/dawn) */}
       {theme.starsVisible && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
-          {[...Array(40)].map((_, i) => (
+          {STARS.map((star, i) => (
             <div
               key={i}
               className="absolute rounded-full bg-white"
               style={{
-                width: `${Math.random() * 2 + 1}px`,
-                height: `${Math.random() * 2 + 1}px`,
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                opacity: Math.random(),
-                animation: `pulse ${2 + Math.random() * 3}s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 3}s`,
+                width: `${star.size}px`,
+                height: `${star.size}px`,
+                top: `${star.top}%`,
+                left: `${star.left}%`,
+                opacity: star.opacity,
+                animation: `pulse ${star.duration}s ease-in-out infinite`,
+                animationDelay: `${star.delay}s`,
               }}
             />
           ))}
