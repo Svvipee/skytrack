@@ -3,7 +3,10 @@ import { fetchAllStates, parseStateVector, filterValidFlights, enrichFlight } fr
 import { buildFlightDetails } from '@/lib/aviation';
 import { EnrichedFlight } from '@/types';
 
-export const runtime = 'nodejs';
+// OpenSky intermittently rejects or times out connections from shared
+// serverless regions. The edge runtime provides a globally distributed
+// outbound path and keeps this read-only feed close to visitors.
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 // Cache between requests to avoid hammering OpenSky
